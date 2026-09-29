@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#18212b">
+<title>Energy Converter</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#18212b}
+.app{max-width:520px;margin:0 auto;padding:24px 18px 50px}
+h1{margin-bottom:4px}.subtitle{color:#68727d;margin-top:0;margin-bottom:28px}
+.card{background:white;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 3px 14px rgba(0,0,0,.06)}
+h2{font-size:17px;margin-top:0}.input-row{display:grid;grid-template-columns:1fr 135px;gap:10px;margin-bottom:18px}
+input,select{width:100%;padding:14px;border:1px solid #d6dce2;border-radius:10px;font-size:18px;background:white}
+input:focus,select:focus{outline:2px solid #222}
+.result-row{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px solid #edf0f2}
+.result-row:last-child{border-bottom:none}.label{color:#69737d}.value{font-weight:600;text-align:right}
+.total{background:#18212b;color:white}.total .label{color:#cbd2d9}.total-value{font-size:30px;font-weight:700;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>Energy Converter</h1>
+<p class="subtitle">Energie & Preise einfach umrechnen</p>
+
+<div class="card">
+<h2>Energiemenge</h2>
+<div class="input-row">
+<input id="energyValue" type="number" inputmode="decimal" step="any" value="2.5" oninput="calculate()">
+<select id="energyUnit" onchange="calculate()">
+<option value="kWh">kWh</option><option value="MWh">MWh</option><option value="GWh" selected>GWh</option>
+</select>
+</div>
+<div class="result-row"><span class="label">kWh</span><span class="value" id="resultKWh"></span></div>
+<div class="result-row"><span class="label">MWh</span><span class="value" id="resultMWh"></span></div>
+<div class="result-row"><span class="label">GWh</span><span class="value" id="resultGWh"></span></div>
+</div>
+
+<div class="card">
+<h2>Energiepreis</h2>
+<div class="input-row">
+<input id="priceValue" type="number" inputmode="decimal" step="any" value="1.50" oninput="calculate()">
+<select id="priceUnit" onchange="calculate()">
+<option value="CHF/kWh">CHF/kWh</option><option value="Rp/kWh">Rp./kWh</option><option value="CHF/MWh" selected>CHF/MWh</option><option value="CHF/GWh">CHF/GWh</option>
+</select>
+</div>
+<div class="result-row"><span class="label">CHF/kWh</span><span class="value" id="priceKWh"></span></div>
+<div class="result-row"><span class="label">Rp./kWh</span><span class="value" id="priceRp"></span></div>
+<div class="result-row"><span class="label">CHF/MWh</span><span class="value" id="priceMWh"></span></div>
+<div class="result-row"><span class="label">CHF/GWh</span><span class="value" id="priceGWh"></span></div>
+</div>
+
+<div class="card total">
+<span class="label">Gesamtkosten</span>
+<div class="total-value" id="totalCost">CHF 0.00</div>
+</div>
+</div>
+
+<script>
+function formatNumber(n,d=6){return new Intl.NumberFormat('de-CH',{maximumFractionDigits:d}).format(n)}
+function formatCHF(n){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2}).format(n)}
+function calculate(){
+ const ev=parseFloat(document.getElementById("energyValue").value)||0;
+ const eu=document.getElementById("energyUnit").value;
+ const pv=parseFloat(document.getElementById("priceValue").value)||0;
+ const pu=document.getElementById("priceUnit").value;
+ let kWh=eu==="kWh"?ev:eu==="MWh"?ev*1000:ev*1000000;
+ let MWh=kWh/1000,GWh=kWh/1000000;
+ resultKWh.textContent=formatNumber(kWh)+" kWh";
+ resultMWh.textContent=formatNumber(MWh)+" MWh";
+ resultGWh.textContent=formatNumber(GWh)+" GWh";
+ let cpk=pu==="CHF/kWh"?pv:pu==="Rp/kWh"?pv/100:pu==="CHF/MWh"?pv/1000:pv/1000000;
+ priceKWh.textContent=formatNumber(cpk,8)+" CHF/kWh";
+ priceRp.textContent=formatNumber(cpk*100,8)+" Rp./kWh";
+ priceMWh.textContent=formatNumber(cpk*1000,6)+" CHF/MWh";
+ priceGWh.textContent=formatNumber(cpk*1000000,2)+" CHF/GWh";
+ totalCost.textContent=formatCHF(kWh*cpk);
+}
+calculate();
+</script>
+</body>
+</html>

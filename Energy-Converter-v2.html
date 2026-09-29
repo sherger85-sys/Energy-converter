@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14212b">
+<title>Energy Converter</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#17232d;--muted:#687681;--line:#e7ebee;--accent:#14212b}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.app{max-width:520px;margin:auto;padding:22px 16px 40px}
+.header{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 22px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:26px;box-shadow:0 4px 12px #0002}
+h1{font-size:23px;margin:0}.subtitle{font-size:13px;color:var(--muted);margin-top:2px}
+.reset{border:0;background:#e5e9ec;color:var(--ink);padding:10px 12px;border-radius:10px;font-weight:700}
+.card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 3px 14px #0000000d}
+h2{font-size:16px;margin:0 0 14px}
+.input-row{display:grid;grid-template-columns:minmax(0,1fr) 135px;gap:9px;margin-bottom:14px}
+input,select{min-width:0;width:100%;border:1px solid #d6dde2;background:#fff;border-radius:12px;padding:14px 12px;font-size:18px;color:var(--ink)}
+input:focus,select:focus{outline:2px solid #8796a1;outline-offset:1px}
+.result{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.result:last-child{border-bottom:0}
+.label{color:var(--muted);font-size:14px}
+.value{font-weight:700;text-align:right;font-size:14px;overflow-wrap:anywhere}
+.copy{border:0;background:#f0f3f5;border-radius:9px;padding:7px 9px;font-size:13px;cursor:pointer}
+.result-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+.total{background:var(--accent);color:#fff}
+.total .label{color:#cbd4da}
+.total-top{display:flex;justify-content:space-between;align-items:center}
+.total-value{font-size:29px;font-weight:800;margin-top:8px;overflow-wrap:anywhere}
+.total .copy{background:#ffffff1c;color:#fff}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.note{text-align:center;color:#7a8790;font-size:12px;margin-top:18px}
+@media(max-width:370px){.input-row{grid-template-columns:1fr 120px}.value{font-size:13px}.copy{padding:6px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <div class="logo">⚡</div>
+      <div><h1>Energy Converter</h1><div class="subtitle">Energie & Preise</div></div>
+    </div>
+    <button class="reset" onclick="resetApp()">Reset</button>
+  </div>
+
+  <div class="card">
+    <h2>Energiemenge</h2>
+    <div class="input-row">
+      <input id="energyValue" type="number" inputmode="decimal" step="any" value="2.5" oninput="calculate()">
+      <select id="energyUnit" onchange="calculate()">
+        <option value="kWh">kWh</option><option value="MWh">MWh</option><option value="GWh" selected>GWh</option>
+      </select>
+    </div>
+    <div id="energyResults"></div>
+  </div>
+
+  <div class="card">
+    <h2>Energiepreis</h2>
+    <div class="input-row">
+      <input id="priceValue" type="number" inputmode="decimal" step="any" value="1.50" oninput="calculate()">
+      <select id="priceUnit" onchange="calculate()">
+        <option value="CHF/kWh">CHF/kWh</option><option value="Rp/kWh">Rp./kWh</option>
+        <option value="CHF/MWh" selected>CHF/MWh</option><option value="CHF/GWh">CHF/GWh</option>
+      </select>
+    </div>
+    <div id="priceResults"></div>
+  </div>
+
+  <div class="card total">
+    <div class="total-top"><span class="label">Gesamtkosten</span><button class="copy" id="copyTotal">Kopieren</button></div>
+    <div class="total-value" id="totalCost">CHF 0.00</div>
+  </div>
+  <div class="note">1 MWh = 1'000 kWh · 1 GWh = 1'000 MWh</div>
+</div>
+<div class="toast" id="toast">Kopiert ✓</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function num(n,d=8){return new Intl.NumberFormat('de-CH',{maximumFractionDigits:d}).format(n)}
+function chf(n){return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF',minimumFractionDigits:2,maximumFractionDigits:2}).format(n)}
+function row(label,text){
+ const div=document.createElement('div'); div.className='result';
+ const l=document.createElement('span'); l.className='label'; l.textContent=label;
+ const r=document.createElement('div'); r.className='result-right';
+ const v=document.createElement('span'); v.className='value'; v.textContent=text;
+ const b=document.createElement('button'); b.className='copy'; b.textContent='Kopieren'; b.onclick=()=>copyText(text);
+ r.append(v,b); div.append(l,r); return div;
+}
+async function copyText(text){
+ try{await navigator.clipboard.writeText(text)}
+ catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}
+ $('toast').classList.add('show'); setTimeout(()=>$('toast').classList.remove('show'),1100);
+}
+function calculate(){
+ const ev=parseFloat($('energyValue').value)||0, eu=$('energyUnit').value;
+ const pv=parseFloat($('priceValue').value)||0, pu=$('priceUnit').value;
+ const kwh=eu==='kWh'?ev:eu==='MWh'?ev*1000:ev*1000000;
+ const mwh=kwh/1000, gwh=kwh/1000000;
+ $('energyResults').replaceChildren(row('kWh',num(kwh)+' kWh'),row('MWh',num(mwh)+' MWh'),row('GWh',num(gwh)+' GWh'));
+ const cpk=pu==='CHF/kWh'?pv:pu==='Rp/kWh'?pv/100:pu==='CHF/MWh'?pv/1000:pv/1000000;
+ const rpm=cpk*100, cpm=cpk*1000, cpg=cpk*1000000;
+ $('priceResults').replaceChildren(
+   row('CHF/kWh',num(cpk,8)+' CHF/kWh'),
+   row('Rp./kWh',num(rpm,8)+' Rp./kWh'),
+   row('CHF/MWh',num(cpm,6)+' CHF/MWh'),
+   row('CHF/GWh',num(cpg,2)+' CHF/GWh')
+ );
+ $('totalCost').textContent=chf(kwh*cpk);
+}
+function resetApp(){
+ $('energyValue').value=''; $('priceValue').value='';
+ $('energyUnit').value='MWh'; $('priceUnit').value='CHF/MWh'; calculate(); $('energyValue').focus();
+}
+$('copyTotal').onclick=()=>copyText($('totalCost').textContent);
+calculate();
+</script>
+</body>
+</html>
